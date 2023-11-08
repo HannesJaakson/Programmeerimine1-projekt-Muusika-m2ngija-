@@ -1,0 +1,58 @@
+import tkinter as tk
+import pygame
+from tkinter import filedialog
+
+#Kasutatud materjalid: https://www.youtube.com/watch?v=jO6qQDNa2UY
+#https://www.pygame.org/docs/ref/mixer.html
+
+pygame.mixer.init()
+playPauseväärtus = 0
+class UI:
+    def __init__(self):
+        self.valmista_põhi()
+    
+    def valmista_põhi(self):
+        
+        self.root = tk.Tk()
+
+        self.root.geometry("800x300")
+        self.root.title("Muusika mängija")
+        
+        self.NuppTruevõiFalse = tk.IntVar() #Õppevideost lisa, ilmselt läheb kustutamisele
+        self.NuppTrue = tk.Checkbutton(self.root, text="Näitab kui Nupp = True", font=("Arial", 18), variable=self.NuppTruevõiFalse)#See ka ilmselt delete
+        
+        self.playPause_nupp = tk.Button(self.root, text="Play/Pause", font=("Impact", 18), command=self.NuppTöötab)
+        self.playPause_nupp.pack(padx=10, pady=10)
+        
+        self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 18), command=self.valifail)
+        self.Fail_nupp.pack(padx= 10, pady=10)
+        
+        self.järgminelaul_nupp = tk.Button(self.root, text="|>>", font=("Arial", 18), command=self.järgminelaul)
+        self.järgminelaul_nupp.pack(padx = 10, pady=10)
+        
+        self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
+        self.root.mainloop()
+    
+    def NuppTöötab(self):
+        if pygame.mixer.get_busy() == False:
+            pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.failinimi))
+            self.Kanal0tööolek = True
+        elif self.Kanal0tööolek:
+            pygame.mixer.Channel(0).pause()
+            self.Kanal0tööolek = False
+        else:
+            pygame.mixer.Channel(0).unpause()
+            self.Kanal0tööolek = True
+    
+    def valifail(self):
+        self.failinimi = filedialog.askopenfile(title="Vailge helifail mida mängida")
+    
+    def järgminelaul(self):
+        pygame.mixer.Channel(0).stop()
+        pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.failinimi))
+    
+    def sulgemine(self):
+        pygame.mixer.quit() #https://www.pygame.org/docs/ref/mixer.html
+        self.root.destroy()        
+
+UI()
