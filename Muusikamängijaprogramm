@@ -6,7 +6,6 @@ from tkinter import filedialog
 #https://www.pygame.org/docs/ref/mixer.html
 
 pygame.mixer.init()
-playPauseväärtus = 0
 class UI:
     def __init__(self):
         self.valmista_põhi()
@@ -18,10 +17,7 @@ class UI:
         self.root.geometry("800x300")
         self.root.title("Muusika mängija")
         
-        self.NuppTruevõiFalse = tk.IntVar() #Õppevideost lisa, ilmselt läheb kustutamisele
-        self.NuppTrue = tk.Checkbutton(self.root, text="Näitab kui Nupp = True", font=("Arial", 18), variable=self.NuppTruevõiFalse)#See ka ilmselt delete
-        
-        self.playPause_nupp = tk.Button(self.root, text="Play/Pause", font=("Impact", 18), command=self.NuppTöötab)
+        self.playPause_nupp = tk.Button(self.root, text="Play/Pause", font=("Impact", 18), command=self.playpause)
         self.playPause_nupp.pack(padx=10, pady=10)
         
         self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 18), command=self.valifail)
@@ -30,10 +26,14 @@ class UI:
         self.järgminelaul_nupp = tk.Button(self.root, text="|>>", font=("Arial", 18), command=self.järgminelaul)
         self.järgminelaul_nupp.pack(padx = 10, pady=10)
         
+        self.volüümslider = tk.Scale(self.root, from_=100, to=0, length=200, command=self.slider_väärtused)
+        self.volüümslider.set(100)
+        self.volüümslider.pack(padx = 10, pady = 10)
+        
         self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
         self.root.mainloop()
     
-    def NuppTöötab(self):
+    def playpause(self):
         if pygame.mixer.get_busy() == False:
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.failinimi))
             self.Kanal0tööolek = True
@@ -50,6 +50,10 @@ class UI:
     def järgminelaul(self):
         pygame.mixer.Channel(0).stop()
         pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.failinimi))
+    
+    def slider_väärtused(self, väärtus):
+        sliderväärtus = väärtus
+        pygame.mixer.Channel(0).set_volume(float(väärtus) / 100.0)
     
     def sulgemine(self):
         pygame.mixer.quit() #https://www.pygame.org/docs/ref/mixer.html
