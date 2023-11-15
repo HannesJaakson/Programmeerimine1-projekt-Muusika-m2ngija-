@@ -12,17 +12,18 @@ from tkinter import *
 
 pygame.mixer.init()
 pygame.init()
+
 class UI:
     def __init__(self):
         self.valmista_põhi()
-    
+    # loob GUI akna ja komponendid
     def valmista_põhi(self):
         
         self.root = tk.Tk()
-
+    # tkinteri akna loomine
         self.root.geometry("483x600")#kuldlõige
         self.root.title("Muusika mängija")
-        
+        # nupud ning teised UI elemendid
         self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 18), command=self.playpause)
         self.playPause_nupp.pack(padx=10, pady=10)
         self.laululõpukontrollija = False
@@ -45,12 +46,14 @@ class UI:
         self.lauluscrollslider = tk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, length= 400, command=self.scrollilaulus)
         self.lauluscrollslider.pack(padx = 10, pady = 10)
         
+        # sulgemise sündmus
         self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
-        
+        # akna avamine
         self.root.mainloop()
-    
+    # play/pause nupu funktsioon
     def playpause(self):
         if pygame.mixer.get_busy() == False:
+            # kui muusika ei mängi, alustab laulu mängimist, laulu lõppedes käivitab uue laulu valimise threadi
             self.hetkelmängivalauluindeks += 1
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
             self.Kanal0tööolek = True
@@ -66,7 +69,7 @@ class UI:
         else:
             pygame.mixer.Channel(0).unpause()
             self.Kanal0tööolek = True
-            
+     # otsib uue laulu ning mängib kui eelmine läbi saab      
     def uuslaulpealelõppu(self):
         while True:
             if not(pygame.mixer.get_busy()):
@@ -75,44 +78,56 @@ class UI:
                 pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
                 self.Kanal0tööolek = True
                 time.sleep(1)
-                    
+      # võimaldab valida muusikafaili            
     def valifail(self):
+        # avab dialoogi, et kasutaja saaks faili valida
         self.failinimi = filedialog.askopenfilenames(title="Vailge helifail mida mängida", initialdir=os.path.expanduser('~/music'), filetypes=[('Audio Files', '*.flac *.mp3 *.wav *.aac *.ogg *.wma *opus *.alac *.mid')])
         if self.failinimi == None:
             pass
         else:
+            # lisab valitud faili järjekorda
             for i in self.failinimi: #https://www.geeksforgeeks.org/how-to-add-music-playlist-in-pygame/
                 self.lauludejärjend.append(i)
                 print(self.lauludejärjend)#See on siin ainult testimiseks
     
+    # mängib järgmise laulu järjekorras
     def järgminelaul(self):
         if len(self.lauludejärjend) <= self.hetkelmängivalauluindeks + 1:
             pass
         else:
+            # lõpetab praeguse laulu mängimise ning alustab järgmise laulu mängimist
             pygame.mixer.Channel(0).stop()
             self.hetkelmängivalauluindeks += 1
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
             self.Kanal0tööolek = True
-    
+     # shuffle ehk laulude järjekorra segamine
     def shuffle(self):
+        # kontrollib kas shuffle on juba tehtud
         if self.korra_juba_tehtud_shuffle == False:
+            # esimesel korral salvestab originaaljärjekorra ja segab laulud
             self.originaaljärjend = self.lauludejärjend.copy()
             random.shuffle(self.lauludejärjend)
             self.korra_juba_tehtud_shuffle = True
             self.shuffletöömääraja = True
+       # kui shuffle on aktiivne, taastab originaaljärjekorra
         elif self.shuffletöömääraja:
             self.lauludejärjend = self.originaaljärjend
+       # ülejäänud puhkudel segab laulud uuesti
         else:
             random.shuffle(self.lauludejärjend)
     
+    # volüümi muutmise funktsioon
     def slider_väärtused(self, väärtus):
         sliderväärtus = väärtus
         pygame.mixer.Channel(0).set_volume(float(väärtus) / 100.0)
-        
+     
+     # laulu kerimise funktsioon (tühi)
     def scrollilaulus(self):
         pass
     
+    #rakenduse sulgemine
     def sulgemine(self):
+        # peatab helisüsteemi ja sulgeb akna
         pygame.mixer.quit() #https://www.pygame.org/docs/ref/mixer.html
         self.root.destroy()        
 
