@@ -57,8 +57,7 @@ class UI:
         if self.failinimi == None:
             pass
         else:
-            for i in self.failinimi:
-                pygame.mixer.Channel(0).queue(i)
+            for i in self.failinimi: #https://www.geeksforgeeks.org/how-to-add-music-playlist-in-pygame/
                 self.lauludejärjend.append(i)
                 print(self.lauludejärjend)#See on siin ainult testimiseks
     
@@ -66,7 +65,8 @@ class UI:
         if len(self.lauludejärjend) <= self.hetkelmängivalauluindeks + 1:
             pass
         else:
-            self.hetkelmängivalauluindeks += 1 #https://www.geeksforgeeks.org/how-to-add-music-playlist-in-pygame/
+            pygame.mixer.Channel(0).stop()
+            self.hetkelmängivalauluindeks += 1
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
             self.Kanal0tööolek = True
     
