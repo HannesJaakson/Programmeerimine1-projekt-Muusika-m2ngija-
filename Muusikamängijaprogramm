@@ -2,12 +2,15 @@ import tkinter as tk
 import pygame
 import os
 import random
+import time
+import threading
 from tkinter import filedialog
 
 #Kasutatud materjalid: https://www.youtube.com/watch?v=jO6qQDNa2UY
 #https://www.pygame.org/docs/ref/mixer.html
 
 pygame.mixer.init()
+pygame.init()
 class UI:
     def __init__(self):
         self.valmista_põhi()
@@ -32,12 +35,14 @@ class UI:
         
         self.shuffle_nupp = tk.Button(self.root, text="🔀", font=("Arial", 18), command=self.shuffle)
         self.shuffle_nupp.pack(padx = 10, pady = 10)
+        self.korra_juba_tehtud_shuffle = False
         
         self.volüümslider = tk.Scale(self.root, from_=100, to=0, length=200, command=self.slider_väärtused)
         self.volüümslider.set(100)
         self.volüümslider.pack(padx = 10, pady = 10)
         
         self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
+        
         self.root.mainloop()
     
     def playpause(self):
@@ -45,15 +50,28 @@ class UI:
             self.hetkelmängivalauluindeks += 1
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
             self.Kanal0tööolek = True
+            self.lõppenud_laulu_kontrolli_eraldi_thread = threading.Thread(target=self.uuslaulpealelõppu)#Sain abi vennalt, Janar-Keit Jaaksonilt.
+            self.lõppenud_laulu_kontrolli_eraldi_thread.daemon = True
+            self.lõppenud_laulu_kontrolli_eraldi_thread.start()
+        
         elif self.Kanal0tööolek:
             pygame.mixer.Channel(0).pause()
             self.Kanal0tööolek = False
         else:
             pygame.mixer.Channel(0).unpause()
             self.Kanal0tööolek = True
-    
+            
+    def uuslaulpealelõppu(self):
+        while True:
+            if not(pygame.mixer.get_busy()):
+                pygame.mixer.Channel(0).stop()
+                self.hetkelmängivalauluindeks += 1
+                pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
+                self.Kanal0tööolek = True
+                time.sleep(1)
+                    
     def valifail(self):
-        self.failinimi = filedialog.askopenfilenames(title="Vailge helifail mida mängida", initialdir=os.path.expanduser('~/music'), filetypes=[('Audio Files', '*.flac *.mp3 *.wav *.aac *.m4a *.ogg *.wma *opus *.alac *.mid')])
+        self.failinimi = filedialog.askopenfilenames(title="Vailge helifail mida mängida", initialdir=os.path.expanduser('~/music'), filetypes=[('Audio Files', '*.flac *.mp3 *.wav *.aac *.ogg *.wma *opus *.alac *.mid')])
         if self.failinimi == None:
             pass
         else:
@@ -71,8 +89,15 @@ class UI:
             self.Kanal0tööolek = True
     
     def shuffle(self):
-        self.originaaljärjend = self.lauludejärjend.copy()
-        random.shuffle(self.shufflejärjend)
+        if self.korra_juba_tehtud_shuffle == False:
+            self.originaaljärjend = self.lauludejärjend.copy()
+            random.shuffle(self.lauludejärjend)
+            self.korra_juba_tehtud_shuffle = True
+            self.shuffletöömääraja = True
+        elif self.shuffletöömääraja:
+            self.lauludejärjend = self.originaaljärjend
+        else:
+            random.shuffle(self.lauludejärjend)
     
     def slider_väärtused(self, väärtus):
         sliderväärtus = väärtus
