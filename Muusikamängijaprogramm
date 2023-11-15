@@ -5,6 +5,7 @@ import random
 import time
 import threading
 from tkinter import filedialog
+from tkinter import *
 
 #Kasutatud materjalid: https://www.youtube.com/watch?v=jO6qQDNa2UY
 #https://www.pygame.org/docs/ref/mixer.html
@@ -24,6 +25,7 @@ class UI:
         
         self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 18), command=self.playpause)
         self.playPause_nupp.pack(padx=10, pady=10)
+        self.laululõpukontrollija = False
         
         self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 18), command=self.valifail)
         self.Fail_nupp.pack(padx= 10, pady=10)
@@ -40,6 +42,8 @@ class UI:
         self.volüümslider = tk.Scale(self.root, from_=100, to=0, length=200, command=self.slider_väärtused)
         self.volüümslider.set(100)
         self.volüümslider.pack(padx = 10, pady = 10)
+        self.lauluscrollslider = tk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, length= 400, command=self.scrollilaulus)
+        self.lauluscrollslider.pack(padx = 10, pady = 10)
         
         self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
         
@@ -50,9 +54,11 @@ class UI:
             self.hetkelmängivalauluindeks += 1
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
             self.Kanal0tööolek = True
-            self.lõppenud_laulu_kontrolli_eraldi_thread = threading.Thread(target=self.uuslaulpealelõppu)#Sain abi vennalt, Janar-Keit Jaaksonilt.
-            self.lõppenud_laulu_kontrolli_eraldi_thread.daemon = True
-            self.lõppenud_laulu_kontrolli_eraldi_thread.start()
+            if not(self.laululõpukontrollija):
+                self.lõppenud_laulu_kontrolli_eraldi_thread = threading.Thread(target=self.uuslaulpealelõppu)#Sain abi vennalt, Janar-Keit Jaaksonilt.
+                self.lõppenud_laulu_kontrolli_eraldi_thread.daemon = True
+                self.lõppenud_laulu_kontrolli_eraldi_thread.start()
+                self.laululõpukontrollija = True
         
         elif self.Kanal0tööolek:
             pygame.mixer.Channel(0).pause()
@@ -102,6 +108,9 @@ class UI:
     def slider_väärtused(self, väärtus):
         sliderväärtus = väärtus
         pygame.mixer.Channel(0).set_volume(float(väärtus) / 100.0)
+        
+    def scrollilaulus(self):
+        pass
     
     def sulgemine(self):
         pygame.mixer.quit() #https://www.pygame.org/docs/ref/mixer.html
