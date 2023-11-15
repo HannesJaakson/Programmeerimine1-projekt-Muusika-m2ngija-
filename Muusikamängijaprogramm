@@ -57,7 +57,7 @@ class UI:
             self.hetkelmängivalauluindeks += 1
             pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
             self.Kanal0tööolek = True
-            if not(self.laululõpukontrollija):
+            if not(self.laululõpukontrollija): #Loome eraldi lõimele programmi osa, mille funktsioon on selline, et kui helifail on läbi saanud, siis alustab uue helifaili esitamist.
                 self.lõppenud_laulu_kontrolli_eraldi_thread = threading.Thread(target=self.uuslaulpealelõppu)#Sain abi vennalt, Janar-Keit Jaaksonilt.
                 self.lõppenud_laulu_kontrolli_eraldi_thread.daemon = True
                 self.lõppenud_laulu_kontrolli_eraldi_thread.start()
