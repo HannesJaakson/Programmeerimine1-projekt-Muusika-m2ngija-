@@ -3,9 +3,11 @@ import pygame
 import os
 import random
 import time
-import threading
+import mutagen
+import time
 from tkinter import filedialog
 from tkinter import *
+
 
 #Kasutatud materjalid: https://www.youtube.com/watch?v=jO6qQDNa2UY
 #https://www.pygame.org/docs/ref/mixer.html
@@ -13,20 +15,23 @@ from tkinter import *
 pygame.mixer.init()
 pygame.init()
 
+Muusika_Lõpp = pygame.event.custom_type()
 class UI:
     def __init__(self):
+        pygame.mixer.music.set_endevent(Muusika_Lõpp)
         self.valmista_põhi()
-    # loob GUI akna ja komponendid
+    
     def valmista_põhi(self):
         
         self.root = tk.Tk()
-    # tkinteri akna loomine
+
         self.root.geometry("483x600")#kuldlõige
         self.root.title("Muusika mängija")
-        # nupud ning teised UI elemendid
+        
         self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 18), command=self.playpause)
         self.playPause_nupp.pack(padx=10, pady=10)
         self.laululõpukontrollija = False
+        self.musicOnPaused = False
         
         self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 18), command=self.valifail)
         self.Fail_nupp.pack(padx= 10, pady=10)
@@ -35,6 +40,9 @@ class UI:
         
         self.järgminelaul_nupp = tk.Button(self.root, text="⏭", font=("Arial", 18), command=self.järgminelaul)
         self.järgminelaul_nupp.pack(padx = 10, pady=10)
+        
+        self.eelminelaul_nupp = tk.Button(self.root, text="⏮", font=("Arial", 18), command=self.eelminelaul)
+        self.eelminelaul_nupp.pack(padx = 10, pady=10)
         
         self.shuffle_nupp = tk.Button(self.root, text="🔀", font=("Arial", 18), command=self.shuffle)
         self.shuffle_nupp.pack(padx = 10, pady = 10)
@@ -45,89 +53,102 @@ class UI:
         self.volüümslider.pack(padx = 10, pady = 10)
         self.lauluscrollslider = tk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, length= 400, command=self.scrollilaulus)
         self.lauluscrollslider.pack(padx = 10, pady = 10)
+        self.enne_scrollimist = 0.0
         
-        # sulgemise sündmus
+        self.hetke_aeg = Label(self.root, text = '', bd=1, anchor=E)
+        self.hetke_aeg.pack()
+        
         self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
-        # akna avamine
-        self.root.mainloop()
-    # play/pause nupu funktsioon
-    def playpause(self):
-        if pygame.mixer.get_busy() == False:
-            # kui muusika ei mängi, alustab laulu mängimist, laulu lõppedes käivitab uue laulu valimise threadi
-            self.hetkelmängivalauluindeks += 1
-            pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
-            self.Kanal0tööolek = True
-            if not(self.laululõpukontrollija):
-                self.lõppenud_laulu_kontrolli_eraldi_thread = threading.Thread(target=self.uuslaulpealelõppu)#Sain abi vennalt, Janar-Keit Jaaksonilt.
-                self.lõppenud_laulu_kontrolli_eraldi_thread.daemon = True
-                self.lõppenud_laulu_kontrolli_eraldi_thread.start()
-                self.laululõpukontrollija = True
         
-        elif self.Kanal0tööolek:
-            pygame.mixer.Channel(0).pause()
-            self.Kanal0tööolek = False
-        else:
-            pygame.mixer.Channel(0).unpause()
-            self.Kanal0tööolek = True
-     # otsib uue laulu ning mängib kui eelmine läbi saab      
-    def uuslaulpealelõppu(self):
-        while True:
-            if not(pygame.mixer.get_busy()):
-                pygame.mixer.Channel(0).stop()
+        self.Event_Kontroll()
+        
+        self.root.mainloop()
+    
+    def Event_Kontroll(self):
+        for event in pygame.event.get():
+            if event.type == Muusika_Lõpp:
+                self.järgminelaul()
+                
+        self.Hetkeaeg_laulus = int(pygame.mixer.music.get_pos() / 1000 + self.enne_scrollimist)
+        self.Hetkeaeg_laulus_kena_visuaalselt = time.strftime('%M:%S', time.gmtime(self.Hetkeaeg_laulus))
+        self.hetke_aeg.config(text=self.Hetkeaeg_laulus_kena_visuaalselt)#Muudab graafilisel liidesel väärtust
+        self.root.after(100, self.Event_Kontroll)  # Kontrolli uuesti 100ms pärast
+        
+    def playpause(self):
+        if pygame.mixer.music.get_busy() == False:
+            if self.musicOnPaused:
+                pygame.mixer.music.unpause()
+                self.musicOnPaused = False
+            else:
                 self.hetkelmängivalauluindeks += 1
-                pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
-                self.Kanal0tööolek = True
-                time.sleep(1)
-      # võimaldab valida muusikafaili            
+                pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+                pygame.mixer.music.play()
+                self.musictööolek = True
+        
+        else:
+            self.musictööolek = False
+            self.musicOnPaused = True
+            pygame.mixer.music.pause()
+            print(pygame.mixer.music.get_busy())
+
+                    
     def valifail(self):
-        # avab dialoogi, et kasutaja saaks faili valida
         self.failinimi = filedialog.askopenfilenames(title="Vailge helifail mida mängida", initialdir=os.path.expanduser('~/music'), filetypes=[('Audio Files', '*.flac *.mp3 *.wav *.aac *.ogg *.wma *opus *.alac *.mid')])
         if self.failinimi == None:
             pass
         else:
-            # lisab valitud faili järjekorda
             for i in self.failinimi: #https://www.geeksforgeeks.org/how-to-add-music-playlist-in-pygame/
                 self.lauludejärjend.append(i)
-                print(self.lauludejärjend)#See on siin ainult testimiseks
     
-    # mängib järgmise laulu järjekorras
     def järgminelaul(self):
         if len(self.lauludejärjend) <= self.hetkelmängivalauluindeks + 1:
             pass
         else:
-            # lõpetab praeguse laulu mängimise ning alustab järgmise laulu mängimist
-            pygame.mixer.Channel(0).stop()
             self.hetkelmängivalauluindeks += 1
-            pygame.mixer.Channel(0).play(pygame.mixer.Sound(self.lauludejärjend[self.hetkelmängivalauluindeks]))
-            self.Kanal0tööolek = True
-     # shuffle ehk laulude järjekorra segamine
+            pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+            pygame.mixer.music.play()
+            self.musictööolek = True
+            self.enne_scrollimist = 0.0
+            
+    def eelminelaul(self):
+        if self.Hetkeaeg_laulus > 2:
+            pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+            pygame.mixer.music.play()
+            self.enne_scrollimist = 0.0
+        else:
+            self.hetkelmängivalauluindeks -= 1
+            pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+            pygame.mixer.music.play()
+            self.enne_scrollimist = 0.0
+    
     def shuffle(self):
-        # kontrollib kas shuffle on juba tehtud
         if self.korra_juba_tehtud_shuffle == False:
-            # esimesel korral salvestab originaaljärjekorra ja segab laulud
             self.originaaljärjend = self.lauludejärjend.copy()
             random.shuffle(self.lauludejärjend)
             self.korra_juba_tehtud_shuffle = True
             self.shuffletöömääraja = True
-       # kui shuffle on aktiivne, taastab originaaljärjekorra
         elif self.shuffletöömääraja:
             self.lauludejärjend = self.originaaljärjend
-       # ülejäänud puhkudel segab laulud uuesti
         else:
             random.shuffle(self.lauludejärjend)
     
-    # volüümi muutmise funktsioon
     def slider_väärtused(self, väärtus):
-        sliderväärtus = väärtus
-        pygame.mixer.Channel(0).set_volume(float(väärtus) / 100.0)
-     
-     # laulu kerimise funktsioon (tühi)
-    def scrollilaulus(self):
-        pass
+        pygame.mixer.music.set_volume(float(väärtus) / 100.0)
+        
+    def scrollilaulus(self, väärtus):
+        #Leiab laulu pikkuse
+        audio = mutagen.File(self.lauludejärjend[self.hetkelmängivalauluindeks])
+        try:
+            laulupikkus = audio.info.length
+        except:
+            print("Ei leidnud laulupikkust")
+        
+        self.enne_scrollimist = float((float(väärtus)*laulupikkus)/100.0)
+        #Laeb lauluuuesti ja mängib vastavalt väärtusele valitud laulu kohast.
+        pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+        pygame.mixer.music.play(loops=0, start=self.enne_scrollimist)
     
-    #rakenduse sulgemine
     def sulgemine(self):
-        # peatab helisüsteemi ja sulgeb akna
         pygame.mixer.quit() #https://www.pygame.org/docs/ref/mixer.html
         self.root.destroy()        
 
