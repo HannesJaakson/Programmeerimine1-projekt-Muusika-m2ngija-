@@ -1,107 +1,269 @@
 import tkinter as tk
+import tkinter.ttk as ttk
 import pygame
 import os
 import random
 import time
 import mutagen
-import time
 from tkinter import filedialog
 from tkinter import *
+import copy
 
 
 #Kasutatud materjalid: https://www.youtube.com/watch?v=jO6qQDNa2UY
 #https://www.pygame.org/docs/ref/mixer.html
+#https://www.youtube.com/playlist?list=PLCC34OHNcOtoC6GglhF3ncJ5rLwQrLGnV
 
+# Käivitub pygame mixer ja pygame, mida kasutatakse helifailide taasesitamiseks
 pygame.mixer.init()
 pygame.init()
 
 Muusika_Lõpp = pygame.event.custom_type()
 class UI:
-    def __init__(self):
-        pygame.mixer.music.set_endevent(Muusika_Lõpp)
-        self.valmista_põhi()
-    
-    def valmista_põhi(self):
-        
-        self.root = tk.Tk()
+    # Meetod, mis uuendab lauluinfo, kui fail muutub
+    def Failimuutus(self):
+        try:    
+            self.fail = mutagen.File(self.lauludejärjend[self.hetkelmängivalauluindeks])
+        except:
+            print("Faili pole veel laetud")
+            
+        try:
+            self.väljaandmis_aasta = self.fail['date'][0] #Miskipärast tagastab ['date'] listina, nii et võtan välja listi esimese osa, et saada kätte õige title
+            self.väljaandmis_aasta_tekst.config(text=self.väljaandmis_aasta)#Muudab graafilisel liidesel väärtust
+        except:
+            try:
+                self.väljaandmis_aasta = self.fail['TDRC'].text[0]  # Väljaandmise aasta
+                self.väljaandmis_aasta_tekst.config(text=self.väljaandmis_aasta)
+            except:
+                self.väljaandmis_aasta_tekst.config(text='Antud failil ei leitud väljaandmisaastat')
 
-        self.root.geometry("483x600")#kuldlõige
-        self.root.title("Muusika mängija")
+        try:
+            self.laulu_nimi = self.fail['title'][0] #Miskipärast tagastab ['title'] listina, nii et võtan välja listi esimese osa, et saada kätte õige title
+            self.laulu_nimi_tekst.config(text=self.laulu_nimi)#Muudab graafilisel liidesel väärtust
+        except:
+            try:
+                self.laulu_nimi = self.fail['TIT2'].text[0] # Laulu pealkiri
+                self.laulu_nimi_tekst.config(text=self.laulu_nimi)
+            except:
+                self.laulu_nimi_tekst.config(text='Antud failil ei leitud laulunime')
         
-        self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 18), command=self.playpause)
-        self.playPause_nupp.pack(padx=10, pady=10)
-        self.laululõpukontrollija = False
-        self.musicOnPaused = False
+        try:
+            self.artisti_nimi = self.fail['artist'][0] #Miskipärast tagastab ['artist'] listina, nii et võtan välja listi esimese osa, et saada kätte õige title
+            self.artisti_nimi_tekst.config(text=self.artisti_nimi)#Muudab graafilisel liidesel väärtust
+        except:
+            try:
+                self.artisti_nimi = self.fail['TPE1'].text[0] # Artisti nimi
+                self.artisti_nimi_tekst.config(text=self.artisti_nimi)
+            except:
+                self.artisti_nimi_tekst.config(text='Antud failil ei leitud artisti nime')
         
-        self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 18), command=self.valifail)
-        self.Fail_nupp.pack(padx= 10, pady=10)
-        self.lauludejärjend = []
-        self.hetkelmängivalauluindeks = -1
+        try:
+            self.albumi_nimi = self.fail['album'][0] #Miskipärast tagastab ['album'] listina, nii et võtan välja listi esimese osa, et saada kätte õige title
+            self.albumi_nimi_tekst.config(text=self.albumi_nimi)#Muudab graafilisel liidesel väärtust
+        except:
+            try:
+                self.albumi_nimi = self.fail['TALB'].text[0]  # Albumi nimi
+                self.albumi_nimi_tekst.config(text=self.albumi_nimi)
+            except:
+                self.albumi_nimi_tekst.config(text='Antud failil ei leitud albumi nime')
+
+            
+        try:
+            self.lüürika = self.fail['lyrics'][0] #Miskipärast tagastab ['lüürika'] listina, nii et võtan välja listi esimese osa, et saada kätte õige title
+            
+        except:
+            try:
+                self.lüürika = self.fail['USLT::'].text[0]  # Lüürika
+            except KeyError:
+                # Kui 'USLT' silti ei leita, siis võib olla ka 'SYLT' silt
+                try:
+                    self.lüürika = self.fail['SYLT::'].text[0]
+                except:
+                    # Kui ei leita kumbagi silti, määrake lüürika puudumise teade
+                    self.lüürika = 'Antud failil ei leitud laulusõnu'
+            
+        self.laulude_järjekord()
         
-        self.järgminelaul_nupp = tk.Button(self.root, text="⏭", font=("Arial", 18), command=self.järgminelaul)
-        self.järgminelaul_nupp.pack(padx = 10, pady=10)
-        
-        self.eelminelaul_nupp = tk.Button(self.root, text="⏮", font=("Arial", 18), command=self.eelminelaul)
-        self.eelminelaul_nupp.pack(padx = 10, pady=10)
-        
-        self.shuffle_nupp = tk.Button(self.root, text="🔀", font=("Arial", 18), command=self.shuffle)
-        self.shuffle_nupp.pack(padx = 10, pady = 10)
-        self.korra_juba_tehtud_shuffle = False
-        
-        self.volüümslider = tk.Scale(self.root, from_=100, to=0, length=200, command=self.slider_väärtused)
-        self.volüümslider.set(100)
-        self.volüümslider.pack(padx = 10, pady = 10)
-        self.lauluscrollslider = tk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, length= 400, command=self.scrollilaulus)
-        self.lauluscrollslider.pack(padx = 10, pady = 10)
-        self.enne_scrollimist = 0.0
-        
-        self.hetke_aeg = Label(self.root, text = '', bd=1, anchor=E)
-        self.hetke_aeg.pack()
-        
-        self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
-        
-        self.Event_Kontroll()
-        
-        self.root.mainloop()
+        #Leiab laulu pikkuse
+        try:
+            self.laulupikkus = self.fail.info.length
+            self.laulupikkus_kena_visuaalselt = time.strftime('%M:%S', time.gmtime(self.laulupikkus))
+            self.laulupikkus_tekst.config(text=str(self.laulupikkus_kena_visuaalselt))#Muudab graafilisel liidesel väärtust
+        except:
+            print("Ei leidnud laulupikkust")
     
+    # Uuendab laulude järjekorda
+    def laulude_järjekord(self):
+        try:
+            uussõne = ''
+            try: #Eristab, kui järjekorra lõpuni on vähem kui 10 laulu
+                self.lauludejärjend[self.hetkelmängivalauluindeks + 11] #Tekitab errori, kui listis on vähem, kui 10 eset
+                for i in self.lauludejärjend[self.hetkelmängivalauluindeks + 1:self.hetkelmängivalauluindeks + 11]:
+                    nimi = 'Laulu nime ei leitud'
+                    artist = 'Artisti nime ei leitud'
+                    try:
+                        nimi = mutagen.File(i)['title'][0] 
+                    except:
+                        try:
+                            nimi = mutagen.File(i)['TIT2'].text[0] # Laulu pealkiri
+                        except:
+                            print('Antud failil ei leitud laulunime (järjendiloomisel)')
+                    try:
+                        artist = mutagen.File(i)['artist'][0] 
+                    except:
+                        try:
+                            artist = mutagen.File(i)['TPE1'].text[0] # Laulu pealkiri
+                        except:
+                            print('Antud failil ei leitud laulunime (järjendiloomisel)')
+                    uussõne += artist + ' - ' + nimi + '\n'
+                self.järjekord_tekst.config(text=uussõne)
+            except:
+                if self.playlistrepeat:
+                    try:
+                        loetavjärjend = self.lauludejärjend[self.hetkelmängivalauluindeks:]
+                        for i in range(11):
+                            for j in self.lauludejärjend:
+                                loetavjärjend.append(j)#Korda üksteist, sest kui järjendis ainult üks laul siis programm ei pane errorit järgmisel sammul
+                        for i in loetavjärjend[1:11]:
+                            nimi = 'Laulu nime ei leitud'
+                            artist = 'Artisti nime ei leitud'
+                            try:
+                                nimi = mutagen.File(i)['title'][0] 
+                            except:
+                                try:
+                                    nimi = mutagen.File(i)['TIT2'].text[0] # Laulu pealkiri
+                                except:
+                                    print('Antud failil ei leitud laulunime (järjendiloomisel)')
+                            try:
+                                artist = mutagen.File(i)['artist'][0] 
+                            except:
+                                try:
+                                    artist = mutagen.File(i)['TPE1'].text[0] # Laulu pealkiri
+                                except:
+                                    print('Antud failil ei leitud artisti nime (järjendiloomisel)')
+                            uussõne += artist + ' - ' + nimi + '\n'
+                        self.järjekord_tekst.config(text=uussõne)
+                    except:
+                        print("Tuli error järjekorra välja printimisel, olukorras, kus self.playlistrepeat on True")
+                else:
+                    for i in self.lauludejärjend[self.hetkelmängivalauluindeks + 1:]:
+                        nimi = 'Laulu nime ei leitud'
+                        artist = 'Artisti nime ei leitud'
+                        try:
+                            nimi = mutagen.File(i)['title'][0] 
+                        except:
+                            try:
+                                nimi = mutagen.File(i)['TIT2'].text[0] # Laulu pealkiri
+                            except:
+                                print('Antud failil ei leitud laulunime (järjendiloomisel)')
+                        try:
+                            artist = mutagen.File(i)['artist'][0] 
+                        except:
+                            try:
+                                artist = mutagen.File(i)['TPE1'].text[0] # Laulu pealkiri
+                            except:
+                                print('Antud failil ei leitud laulunime (järjendiloomisel)')
+                        uussõne += artist + ' - ' + nimi + '\n'
+                    self.järjekord_tekst.config(text=uussõne)
+        except:
+            print("Error laulude järjekorra väljastamisel, tõenäoliselt pole ühtegi faili laetud, või järjekorras pole lihtsalt rohkem laule")
+    
+    
+    # Kontrollib pygame sündmusi, muudab Hetkeaega laulus (elapsed time) ja liigutab scroll bari vastavalt
     def Event_Kontroll(self):
+            
         for event in pygame.event.get():
             if event.type == Muusika_Lõpp:
                 self.järgminelaul()
-                
+        
+        
+        
         self.Hetkeaeg_laulus = int(pygame.mixer.music.get_pos() / 1000 + self.enne_scrollimist)
         self.Hetkeaeg_laulus_kena_visuaalselt = time.strftime('%M:%S', time.gmtime(self.Hetkeaeg_laulus))
         self.hetke_aeg.config(text=self.Hetkeaeg_laulus_kena_visuaalselt)#Muudab graafilisel liidesel väärtust
+        
+        if not(self.valifailkorratehtud):
+            pass
+        else:
+            try:
+                self.lauluscrollslider.config(value=(self.Hetkeaeg_laulus * 100) / self.laulupikkus)
+            except:
+                print("Error laulupositsiooni scrollbar'il näitamisel")
+                
+                
         self.root.after(100, self.Event_Kontroll)  # Kontrolli uuesti 100ms pärast
         
+    # Kuvab uues aknas laulusõnad
+    def Lüürika_aken(self):
+        # Loob uue akna
+        uus_aken = tk.Toplevel(self.root)
+        uus_aken.title("Laulusõnad")
+
+
+        # Create a Scrollbar and a Text widget
+        scrollbar = tk.Scrollbar(uus_aken)
+        self.tekstwidget = tk.Text(uus_aken, wrap='none', yscrollcommand=scrollbar.set)
+
+        # Configure the scrollbar
+        scrollbar.config(command=self.tekstwidget.yview)
+        scrollbar.pack(side='right', fill='y')
+
+        # Pack the Text widget
+        self.tekstwidget.pack(side='left', fill='both', expand=True)
+        
+        self.tekstwidget.insert('1.0', self.lüürika)
+    
+    # Mängib või peatab laulu
     def playpause(self):
         if pygame.mixer.music.get_busy() == False:
             if self.musicOnPaused:
                 pygame.mixer.music.unpause()
                 self.musicOnPaused = False
             else:
+                self.hetkelmängivalauluindeks = -1
                 self.hetkelmängivalauluindeks += 1
                 pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
                 pygame.mixer.music.play()
                 self.musictööolek = True
+                self.Failimuutus()
         
         else:
             self.musictööolek = False
             self.musicOnPaused = True
             pygame.mixer.music.pause()
-            print(pygame.mixer.music.get_busy())
 
-                    
+    # Valib faili laadimiseks              
     def valifail(self):
+        self.lauludejärjend = self.originaaljärjend
         self.failinimi = filedialog.askopenfilenames(title="Vailge helifail mida mängida", initialdir=os.path.expanduser('~/music'), filetypes=[('Audio Files', '*.flac *.mp3 *.wav *.aac *.ogg *.wma *opus *.alac *.mid')])
         if self.failinimi == None:
             pass
         else:
             for i in self.failinimi: #https://www.geeksforgeeks.org/how-to-add-music-playlist-in-pygame/
                 self.lauludejärjend.append(i)
+        self.originaaljärjend = copy.deepcopy(self.lauludejärjend)
+        self.valifailkorratehtud = True
+        self.Failimuutus()
     
+    # Mängib järgmist laulu
     def järgminelaul(self):
-        if len(self.lauludejärjend) <= self.hetkelmängivalauluindeks + 1:
+        if self.ükslaulrepeat:
+            pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+            pygame.mixer.music.play()
+            self.enne_scrollimist = 0.0
+            self.musictööolek = True
+            self.Failimuutus()
+        if self.TühjendatiJärjekorda:
+            self.hetkelmängivalauluindeks = 0
+            self.TühjendatiJärjekorda = False
+        if len(self.lauludejärjend) <= self.hetkelmängivalauluindeks + 1 and self.playlistrepeat:
+            self.hetkelmängivalauluindeks = 0
+            pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+            pygame.mixer.music.play()
+            self.musictööolek = True
+            self.enne_scrollimist = 0.0
+            self.Failimuutus()
+        elif len(self.lauludejärjend) <= self.hetkelmängivalauluindeks + 1:
             pass
         else:
             self.hetkelmängivalauluindeks += 1
@@ -109,47 +271,191 @@ class UI:
             pygame.mixer.music.play()
             self.musictööolek = True
             self.enne_scrollimist = 0.0
-            
+            self.Failimuutus()
+    # Mängib eelmist laulu
     def eelminelaul(self):
         if self.Hetkeaeg_laulus > 2:
             pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
             pygame.mixer.music.play()
             self.enne_scrollimist = 0.0
+        if self.TühjendatiJärjekorda:
+            self.hetkelmängivalauluindeks = 0
+            self.TühjendatiJärjekorda = False
+        if self.hetkelmängivalauluindeks == 0 and self.playlistrepeat:
+            self.hetkelmängivalauluindeks = len(self.lauludejärjend) - 1
+            pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+            pygame.mixer.music.play()
+            self.enne_scrollimist = 0.0
+            self.Failimuutus()
+        elif self.hetkelmängivalauluindeks == 0:#Kui on järjekorra esimene lugu, siis ei tohiks lubada tagasi minna (muidu läheks järjekorra viimase loo juurde)
+            pass
         else:
             self.hetkelmängivalauluindeks -= 1
             pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
             pygame.mixer.music.play()
             self.enne_scrollimist = 0.0
+            self.Failimuutus()
+            
+    def keriedasi(self):
+        pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+        self.enne_scrollimist = self.Hetkeaeg_laulus + 30
+        pygame.mixer.music.play(loops=0, start=self.enne_scrollimist)
+        
+    def keritagasi(self):
+        pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
+        if self.Hetkeaeg_laulus - 10 < 0:
+            self.enne_scrollimist = 0
+        else:
+            self.enne_scrollimist = self.Hetkeaeg_laulus - 10
+        pygame.mixer.music.play(loops=0, start=self.enne_scrollimist)
     
     def shuffle(self):
-        if self.korra_juba_tehtud_shuffle == False:
-            self.originaaljärjend = self.lauludejärjend.copy()
-            random.shuffle(self.lauludejärjend)
-            self.korra_juba_tehtud_shuffle = True
-            self.shuffletöömääraja = True
-        elif self.shuffletöömääraja:
+        if self.shuffletöömääraja:
             self.lauludejärjend = self.originaaljärjend
+            self.shuffletöömääraja = False
+            self.laulude_järjekord()
         else:
+            self.originaaljärjend = copy.deepcopy(self.lauludejärjend)
             random.shuffle(self.lauludejärjend)
+            self.shuffletöömääraja = True
+            self.laulude_järjekord()
+            
+    def playlistirepeat(self):
+        if self.playlistrepeat:
+            self.playlistrepeat = False
+            self.laulude_järjekord()
+        else:
+            self.playlistrepeat = True
+            self.laulude_järjekord()
+            
+    def ühelaulurepeat(self):
+        if self.ükslaulrepeat:
+            self.ükslaulrepeat = False
+        else:
+            self.ükslaulrepeat = True
     
+    #volüümi slider
     def slider_väärtused(self, väärtus):
         pygame.mixer.music.set_volume(float(väärtus) / 100.0)
         
     def scrollilaulus(self, väärtus):
-        #Leiab laulu pikkuse
-        audio = mutagen.File(self.lauludejärjend[self.hetkelmängivalauluindeks])
-        try:
-            laulupikkus = audio.info.length
-        except:
-            print("Ei leidnud laulupikkust")
         
-        self.enne_scrollimist = float((float(väärtus)*laulupikkus)/100.0)
+        self.enne_scrollimist = float((float(väärtus)*self.laulupikkus)/100.0)
         #Laeb lauluuuesti ja mängib vastavalt väärtusele valitud laulu kohast.
         pygame.mixer.music.load(self.lauludejärjend[self.hetkelmängivalauluindeks])
         pygame.mixer.music.play(loops=0, start=self.enne_scrollimist)
+        
+    def tühjendajärjekord_fuktsioon(self):
+        try:
+            praegune_esitatav_laul = self.lauludejärjend[self.hetkelmängivalauluindeks]
+            self.lauludejärjend = []
+            self.originaaljärjend = []
+            self.lauludejärjend.append(praegune_esitatav_laul)
+            self.originaaljärjend.append(praegune_esitatav_laul)
+            self.TühjendatiJärjekorda = True
+            self.Failimuutus()
+        except:
+            pass
     
     def sulgemine(self):
         pygame.mixer.quit() #https://www.pygame.org/docs/ref/mixer.html
-        self.root.destroy()        
+        self.root.destroy()
+    
+    # Klassi konstruktor, määratleb algseadistused ja loob kasutajaliidese
+    def __init__(self):
+        pygame.mixer.music.set_endevent(Muusika_Lõpp)
+        self.valmista_põhi()
+    
+     # Loob ja kuvab peamise kasutajaliidese akna
+    def valmista_põhi(self):
+        
+        self.root = tk.Tk()
+
+        self.root.geometry("483x1000")
+        self.root.title("Muusika mängija")
+        
+        self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 10), command=self.playpause)
+        self.playPause_nupp.pack(padx=10, pady=10)
+        self.laululõpukontrollija = False
+        self.musicOnPaused = False
+        
+        self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 10), command=self.valifail)
+        self.Fail_nupp.pack(padx= 10, pady=10)
+        self.originaaljärjend = []
+        self.lauludejärjend = []
+        self.valifailkorratehtud = False
+        self.hetkelmängivalauluindeks = 0
+        
+        self.järgminelaul_nupp = tk.Button(self.root, text="⏭", font=("Arial", 10), command=self.järgminelaul)
+        self.järgminelaul_nupp.pack(padx = 10, pady=10)
+        
+        self.keriedasi_nupp = tk.Button(self.root, text="⏩", font=("Arial", 10), command=self.keriedasi)
+        self.keriedasi_nupp.pack(padx = 10, pady=10)
+        
+        self.eelminelaul_nupp = tk.Button(self.root, text="⏮", font=("Arial", 10), command=self.eelminelaul)
+        self.eelminelaul_nupp.pack(padx = 10, pady=10)
+        
+        self.keritagasi_nupp = tk.Button(self.root, text="⏪", font=("Arial", 10), command=self.keritagasi)
+        self.keritagasi_nupp.pack(padx = 10, pady=10)
+        
+        self.shuffle_nupp = tk.Button(self.root, text="🔀", font=("Arial", 10), command=self.shuffle)
+        self.shuffle_nupp.pack(padx = 10, pady = 10)
+        self.shuffletöömääraja = False
+        
+        self.playlistrepeat_nupp = tk.Button(self.root, text="⟳playlist", font=("Arial", 10), command=self.playlistirepeat)
+        self.playlistrepeat_nupp.pack(padx = 10, pady = 10)
+        self.playlistrepeat = False
+        
+        self.ükslaulrepeat_nupp = tk.Button(self.root, text="⟳ükslaul", font=("Arial", 10), command=self.ühelaulurepeat)
+        self.ükslaulrepeat_nupp.pack(padx = 10, pady = 10)
+        self.ükslaulrepeat = False
+        
+        self.volüümslider = tk.Scale(self.root, from_=100, to=0, length=100, command=self.slider_väärtused)
+        self.volüümslider.set(100)
+        self.volüümslider.pack(padx = 10, pady = 10)
+        
+        self.lauluscrollslider = ttk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, value=0, length= 400, command=self.scrollilaulus) #https://www.youtube.com/watch?v=s_YUe0z09XU&t=3s&ab_channel=Codemy.com
+        self.lauluscrollslider.pack(padx = 10, pady = 10)
+        self.enne_scrollimist = 0.0
+        
+        self.Lüürika_leht_nupp = tk.Button(self.root, text="Lüürika", font=("Arial", 10), command=self.Lüürika_aken)
+        self.Lüürika_leht_nupp.pack(padx = 10, pady=10)
+        
+        self.tühjendajärjekord_nupp = tk.Button(self.root, text="Tühjenda järjekord", font=("Arial", 10), command=self.tühjendajärjekord_fuktsioon)
+        self.tühjendajärjekord_nupp.pack(padx = 10, pady=10)
+        self.TühjendatiJärjekorda = False
+        
+        self.hetke_aeg = Label(self.root, text = '', bd=1, anchor=E)
+        self.hetke_aeg.pack()
+        
+        self.artisti_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata artisti nime', bd=1, anchor=E)
+        self.artisti_nimi_tekst.pack()
+        
+        self.laulu_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata laulunime', bd=1, anchor=E)
+        self.laulu_nimi_tekst.pack()
+        
+        self.albumi_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata albuminime', bd=1, anchor=E)
+        self.albumi_nimi_tekst.pack()
+        
+        self.väljaandmis_aasta_tekst = Label(self.root, text = 'Lae laul, et näidata väljaandmis aastat', bd=1, anchor=E)
+        self.väljaandmis_aasta_tekst.pack()
+        
+        self.laulupikkus_tekst = Label(self.root, text = '00:00', bd=1, anchor=E)
+        self.laulupikkus_tekst.pack()
+        
+        self.järjekordjärgmine_tekst = Label(self.root, text = 'Järjekorras järgmised laulud on:', bd=1, anchor=E)
+        self.järjekordjärgmine_tekst.pack()
+        
+        self.järjekord_tekst = Label(self.root, text = '', bd=1, anchor=E)
+        self.järjekord_tekst.pack()
+        
+        
+        self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
+        
+        self.Event_Kontroll()
+        
+        self.root.mainloop()
+    
+            
 
 UI()
