@@ -550,25 +550,25 @@ class UI:
         self.laulupikkus_kena_visuaalselt = '00:00'
         
         self.artisti_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata artisti nime', bd=1, anchor=E, bg='white', fg= 'indigo')
-        self.artisti_nimi_tekst.place(x=420, y=150)
+        self.artisti_nimi_tekst.place(x=20, y=20)
         
         self.laulu_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata laulunime', bd=1, anchor=E, bg='white', fg= 'indigo')
-        self.laulu_nimi_tekst.place(x=420, y=170)
+        self.laulu_nimi_tekst.place(x=20, y=40)
         
         self.albumi_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata albuminime', bd=1, anchor=E, bg='white', fg= 'indigo')
-        self.albumi_nimi_tekst.place(x=420, y=190)
+        self.albumi_nimi_tekst.place(x=20, y=60)
         
         self.väljaandmis_aasta_tekst = Label(self.root, text = 'Lae laul, et näidata väljaandmisaastat', bd=1, anchor=E, bg='white', fg= 'indigo')
-        self.väljaandmis_aasta_tekst.place(x=420, y=210)
+        self.väljaandmis_aasta_tekst.place(x=20, y=80)
         
         self.laulupikkus_tekst = Label(self.root, text = '00:00', bd=1, anchor=E, bg='white', fg= 'indigo')
         self.laulupikkus_tekst.place(x=500, y=472)
         
         self.järjekordjärgmine_tekst = Label(self.root, text = 'Järjekorras järgmised laulud on:', bd=1, anchor=E, bg='white', fg= 'indigo')
-        self.järjekordjärgmine_tekst.place(x=420, y=230)
+        self.järjekordjärgmine_tekst.place(x=650, y=20)
         
         self.järjekord_tekst = Label(self.root, text = '', bd=1, anchor=E, bg='white', fg= 'indigo')
-        self.järjekord_tekst.place(x=420, y=250)
+        self.järjekord_tekst.place(x=650, y=50)
         
         
         
