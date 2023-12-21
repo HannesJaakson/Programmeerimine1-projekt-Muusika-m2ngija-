@@ -215,7 +215,8 @@ class UI:
         # Teisendab hetkeaja laulus formaadiks MM:SS
         self.Hetkeaeg_laulus_kena_visuaalselt = time.strftime('%M:%S', time.gmtime(self.Hetkeaeg_laulus))
         # Uuendab hetkeaja teksti graafilisel liidesel
-        self.hetke_aeg.config(text=self.Hetkeaeg_laulus_kena_visuaalselt)#Muudab graafilisel liidesel väärtust
+        self.hetke_aeg.config(text=str(self.Hetkeaeg_laulus_kena_visuaalselt) + ' / ' + str(self.laulupikkus_kena_visuaalselt))
+        #Muudab graafilisel liidesel väärtust
         
         # Kontrollib, kas funktsioon valifail on korra tehtud, sest muidu prindib iga 100ms tagant errori "Error laulupositsiooni scrollbar'il näitamisel"
         if not(self.valifailkorratehtud):
@@ -461,92 +462,116 @@ class UI:
         
         self.root = tk.Tk() # Loo peamine Tkinteri aken
 
-        self.root.geometry("483x1000") # Seadista akna suurus ja pealkiri
-        self.root.title("Muusika mängija") # Akna pealkiri
+        self.root.geometry("1000x600") # Seadista akna suurus ja pealkiri
+        self.root.title("Muusikamängija") # Akna pealkiri
         
-        # Loob ja paigutab play/pause nupu
-        self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 10), command=self.playpause)
-        self.playPause_nupp.pack(padx=10, pady=10)
+        # Taustavärv   
+        self.root.configure(bg='white')
+       
+      #  Loob ja paigutab eelmise laulu/tagasikerimise
+        self.eelminelaul_nupp = tk.Button(self.root, text="⏮", font=("Arial", 10), command=self.eelminelaul, fg='indigo', bg='white')
+        self.eelminelaul_nupp.place(x=335, y=500)
+        
+        self.keritagasi_nupp = tk.Button(self.root, text="⏪", font=("Arial", 10), command=self.keritagasi,fg='indigo', bg='white')
+        self.keritagasi_nupp.place(x=435, y=500)
+       
+       # Loob ja paigutab play/pause nupu
+        self.playPause_nupp = tk.Button(self.root, text="⏯", font=("Impact", 10), command=self.playpause, fg='indigo', bg='white')
+        self.playPause_nupp.place(x= 485, y=499)
         # Seadistab muutujad muusika mängimise oleku jälgimiseks
         self.laululõpukontrollija = False
         self.musicOnPaused = False
         
+        self.lauluscrollslider = ttk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, value=0, length= 400, command=self.scrollilaulus, ) #https://www.youtube.com/watch?v=s_YUe0z09XU&t=3s&ab_channel=Codemy.com
+        self.lauluscrollslider.place(x=300, y=450)
+        style = ttk.Style()
+        style.configure("TScale", background= "white")
+        self.enne_scrollimist = 0.0
+        
+        
         # Loob ja paigutab faili valimise nupu
-        self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 10), command=self.valifail)
-        self.Fail_nupp.pack(padx= 10, pady=10)
+        self.Fail_nupp = tk.Button(self.root, text="Fail", font=("Arial", 11), command=self.valifail, fg='indigo', bg='white')
+        self.Fail_nupp.place(x=480, y=400)
         # Seadistab muutujad laulude järjekorra ja hetkel mängiva laulu indeksi jälgimiseks
         self.originaaljärjend = []
         self.lauludejärjend = []
         self.valifailkorratehtud = False
         self.hetkelmängivalauluindeks = 0
         
+        self.keriedasi_nupp = tk.Button(self.root, text="⏩", font=("Arial", 10), command=self.keriedasi, bg= 'indigo', fg= 'white', highlightbackground="white", highlightcolor="white")
+        self.keriedasi_nupp.place(x=535, y=500)
+        
         # Loob ja paigutab nupud järgmise ja eelmise laulu jaoks ning kerimiseks edasi-tagasi nupud
-        self.järgminelaul_nupp = tk.Button(self.root, text="⏭", font=("Arial", 10), command=self.järgminelaul)
-        self.järgminelaul_nupp.pack(padx = 10, pady=10)
+        self.järgminelaul_nupp = tk.Button(self.root, text="⏭", font=("Arial", 10), command=self.järgminelaul, bg= 'indigo', fg= 'white')
+        self.järgminelaul_nupp.place(x=635, y=500)
         
-        self.keriedasi_nupp = tk.Button(self.root, text="⏩", font=("Arial", 10), command=self.keriedasi)
-        self.keriedasi_nupp.pack(padx = 10, pady=10)
+       
         
-        self.eelminelaul_nupp = tk.Button(self.root, text="⏮", font=("Arial", 10), command=self.eelminelaul)
-        self.eelminelaul_nupp.pack(padx = 10, pady=10)
         
-        self.keritagasi_nupp = tk.Button(self.root, text="⏪", font=("Arial", 10), command=self.keritagasi)
-        self.keritagasi_nupp.pack(padx = 10, pady=10)
         
         # Loob ja paigutab juhusliku esituse ja kordusfunktsioonide nupud
-        self.shuffle_nupp = tk.Button(self.root, text="🔀", font=("Arial", 10), command=self.shuffle)
-        self.shuffle_nupp.pack(padx = 10, pady = 10)
+        self.shuffle_nupp = tk.Button(self.root, text="🔀", font=("Arial", 11), command=self.shuffle, bg= 'indigo', fg= 'white')
+        self.shuffle_nupp.place(x=735, y=499)
         self.shuffletöömääraja = False
         
-        self.playlistrepeat_nupp = tk.Button(self.root, text="⟳playlist", font=("Arial", 10), command=self.playlistirepeat)
-        self.playlistrepeat_nupp.pack(padx = 10, pady = 10)
+        self.playlistrepeat_nupp = tk.Button(self.root, text="⟳ Playlist", font=("Arial", 11), command=self.playlistirepeat, fg='indigo', bg='white')
+        self.playlistrepeat_nupp.place(x=50, y=500)
         self.playlistrepeat = False
         
-        self.ükslaulrepeat_nupp = tk.Button(self.root, text="⟳ükslaul", font=("Arial", 10), command=self.ühelaulurepeat)
-        self.ükslaulrepeat_nupp.pack(padx = 10, pady = 10)
+        self.ükslaulrepeat_nupp = tk.Button(self.root, text="⟳ Laul", font=("Arial", 11), command=self.ühelaulurepeat, fg='indigo', bg='white')
+        self.ükslaulrepeat_nupp.place(x=150, y=500)
         self.ükslaulrepeat = False
         
         # Loob ja paigutab helitugevuse ja laulu positsiooni reguleerimise sliderid
-        self.volüümslider = tk.Scale(self.root, from_=100, to=0, length=100, command=self.slider_väärtused)
+        self.volüümslider = ttk.Scale(self.root, from_=0, to=100, length=100, command=self.slider_väärtused, orient=HORIZONTAL,)
         self.volüümslider.set(100)
-        self.volüümslider.pack(padx = 10, pady = 10)
-        
-        self.lauluscrollslider = ttk.Scale(self.root, from_=0, to = 100, orient=HORIZONTAL, value=0, length= 400, command=self.scrollilaulus) #https://www.youtube.com/watch?v=s_YUe0z09XU&t=3s&ab_channel=Codemy.com
-        self.lauluscrollslider.pack(padx = 10, pady = 10)
-        self.enne_scrollimist = 0.0
+        self.volüümslider.place(x=825, y=480)
+        stiil = ttk.Style()
+        stiil.configure("TLabel", background="white")
+        volüümi_ikoon_tekst = tk.StringVar()
+        volüümi_ikoon_tekst.set("🔊")
+        volüümi_ikoon_silt = ttk.Label(self.root, textvariable= volüümi_ikoon_tekst, font=("Arial", 14))
+        volüümi_ikoon_silt.place(x=800, y=476)
         
         # Loob ja paigutab lüürika ja järjekorra tühjendamise nupud
-        self.Lüürika_leht_nupp = tk.Button(self.root, text="Lüürika", font=("Arial", 10), command=self.Lüürika_aken)
-        self.Lüürika_leht_nupp.pack(padx = 10, pady=10)
+        self.Lüürika_leht_nupp = tk.Button(self.root, text="Lüürika", font=("Arial", 11), command=self.Lüürika_aken, fg='indigo', bg='white')
+        self.Lüürika_leht_nupp.place(x=471, y=550)
         
-        self.tühjendajärjekord_nupp = tk.Button(self.root, text="Tühjenda järjekord", font=("Arial", 10), command=self.tühjendajärjekord_fuktsioon)
-        self.tühjendajärjekord_nupp.pack(padx = 10, pady=10)
+        self.tühjendajärjekord_nupp = tk.Button(self.root, text="Tühjenda järjekord", font=("Arial", 10), command=self.tühjendajärjekord_fuktsioon, fg='white', bg='indigo')
+        self.tühjendajärjekord_nupp.place(x=800, y=550)
         self.TühjendatiJärjekorda = False
         
         # Loob ja paigutab erinevad teabe kuvamiseks mõeldud tekstisildid
-        self.hetke_aeg = Label(self.root, text = '', bd=1, anchor=E)
-        self.hetke_aeg.pack()
+        tekstiraam = tk.Frame(self.root)
+        tekstiraam.pack()
         
-        self.artisti_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata artisti nime', bd=1, anchor=E)
-        self.artisti_nimi_tekst.pack()
+        self.hetke_aeg = Label(self.root, text = '', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.hetke_aeg.place(x=460, y=472)
+        self.laulupikkus_kena_visuaalselt = '00:00'
         
-        self.laulu_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata laulunime', bd=1, anchor=E)
-        self.laulu_nimi_tekst.pack()
+        self.artisti_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata artisti nime', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.artisti_nimi_tekst.place(x=420, y=150)
         
-        self.albumi_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata albuminime', bd=1, anchor=E)
-        self.albumi_nimi_tekst.pack()
+        self.laulu_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata laulunime', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.laulu_nimi_tekst.place(x=420, y=170)
         
-        self.väljaandmis_aasta_tekst = Label(self.root, text = 'Lae laul, et näidata väljaandmis aastat', bd=1, anchor=E)
-        self.väljaandmis_aasta_tekst.pack()
+        self.albumi_nimi_tekst = Label(self.root, text = 'Lae laul, et näidata albuminime', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.albumi_nimi_tekst.place(x=420, y=190)
         
-        self.laulupikkus_tekst = Label(self.root, text = '00:00', bd=1, anchor=E)
-        self.laulupikkus_tekst.pack()
+        self.väljaandmis_aasta_tekst = Label(self.root, text = 'Lae laul, et näidata väljaandmisaastat', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.väljaandmis_aasta_tekst.place(x=420, y=210)
         
-        self.järjekordjärgmine_tekst = Label(self.root, text = 'Järjekorras järgmised laulud on:', bd=1, anchor=E)
-        self.järjekordjärgmine_tekst.pack()
+        self.laulupikkus_tekst = Label(self.root, text = '00:00', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.laulupikkus_tekst.place(x=500, y=472)
         
-        self.järjekord_tekst = Label(self.root, text = '', bd=1, anchor=E)
-        self.järjekord_tekst.pack()
+        self.järjekordjärgmine_tekst = Label(self.root, text = 'Järjekorras järgmised laulud on:', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.järjekordjärgmine_tekst.place(x=420, y=230)
+        
+        self.järjekord_tekst = Label(self.root, text = '', bd=1, anchor=E, bg='white', fg= 'indigo')
+        self.järjekord_tekst.place(x=420, y=250)
+        
+        
+        
         
         # Seadistab akna sulgemise käitumist, seostades akna sulgemissündmuse sulgemisfunktsiooniga
         self.root.protocol("WM_DELETE_WINDOW", self.sulgemine)
@@ -558,3 +583,4 @@ class UI:
         self.root.mainloop()
     
 UI()
+
